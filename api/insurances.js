@@ -1,7 +1,16 @@
-// Vercel Serverless Function — Proxy para API Tasy
-// A API Tasy usa autenticação direta (não OAuth2 token exchange)
-const TASY_API_BASE = 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com';
-const API_PATH = '/api/v2/insurances/catalog';
+// Vercel Serverless Function — Proxy para API Tasy (Philips HSP)
+//
+// Swagger spec:
+//   host: api-gateway.b7ad-use1.30e5c8e.hsp.philips.com
+//   basePath: /v1/insurances/resources
+//   path: /api/v2/insurances/catalog
+//   Full URL = host + basePath + path
+//   Auth: BearerAuth (apiKey type, Authorization header)
+
+const TASY_HOST = 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com';
+const BASE_PATH = '/v1/insurances/resources';
+const ENDPOINT = '/api/v2/insurances/catalog';
+const FULL_API_PATH = `${BASE_PATH}${ENDPOINT}`;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,71 +29,58 @@ export default async function handler(req, res) {
         });
     }
 
+    // Montar URL completa: host + basePath + endpoint + queryString
     const url = new URL(req.url, `https://${req.headers.host}`);
     const queryString = url.search || '';
-    const apiUrl = `${TASY_API_BASE}${API_PATH}${queryString}`;
+    const apiUrl = `${TASY_HOST}${FULL_API_PATH}${queryString}`;
 
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-    // Tentar múltiplos métodos de autenticação
-    const authMethods = [
+    // Swagger diz "BearerAuth" — tentar múltiplas formas de autenticação
+    const authAttempts = [
         {
-            name: 'Basic Auth',
-            headers: {
-                'Authorization': `Basic ${basicAuth}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
+            name: 'Bearer (client_id as token)',
+            headers: { 'Authorization': `Bearer ${clientId}` },
         },
         {
-            name: 'API Key header (client_id)',
-            headers: {
-                'x-api-key': clientId,
-                'client_id': clientId,
-                'client_secret': clientSecret,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
+            name: 'Bearer (client_secret as token)',
+            headers: { 'Authorization': `Bearer ${clientSecret}` },
         },
         {
-            name: 'Bearer with client_id as token',
+            name: 'Basic Auth (client_id:client_secret)',
+            headers: { 'Authorization': `Basic ${basicAuth}` },
+        },
+        {
+            name: 'API Key (client_id in header)',
             headers: {
                 'Authorization': `Bearer ${clientId}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-        },
-        {
-            name: 'Custom Philips headers',
-            headers: {
-                'Authorization': `Basic ${basicAuth}`,
-                'api-version': '2',
-                'x-client-id': clientId,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                'x-api-key': clientId,
             },
         },
     ];
 
-    const errors = [];
+    const results = [];
 
-    for (const method of authMethods) {
-        console.log(`Trying: ${method.name} → ${apiUrl}`);
-
+    for (const auth of authAttempts) {
         try {
+            console.log(`[${auth.name}] GET ${apiUrl}`);
+
             const response = await fetch(apiUrl, {
                 method: 'GET',
-                headers: method.headers,
+                headers: {
+                    ...auth.headers,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
             });
 
             const text = await response.text();
-            console.log(`${method.name}: status ${response.status}`);
+            console.log(`[${auth.name}] → ${response.status}`);
 
-            // Se retornou 200 ou 204, temos sucesso
             if (response.status === 200) {
                 try {
                     const data = JSON.parse(text);
-                    console.log(`SUCCESS with ${method.name}`);
+                    console.log(`SUCCESS: ${auth.name}`);
                     return res.status(200).json(data);
                 } catch {
                     return res.status(200).send(text);
@@ -95,28 +91,26 @@ export default async function handler(req, res) {
                 return res.status(200).json({ results: [], total: 0 });
             }
 
-            // 401/403 = auth method wrong, try next
-            // 404 = endpoint wrong
-            // anything else = also try next
-            errors.push({
-                method: method.name,
+            results.push({
+                method: auth.name,
                 status: response.status,
-                body: text.substring(0, 300),
+                body: text.substring(0, 500),
             });
         } catch (e) {
-            errors.push({
-                method: method.name,
+            results.push({
+                method: auth.name,
                 status: 0,
                 body: e.message,
             });
         }
     }
 
-    // Nenhum método funcionou — retorna erro detalhado para debugging
+    // Nenhuma tentativa funcionou
     return res.status(500).json({
         error: true,
-        message: 'All authentication methods failed',
+        message: 'All auth methods failed for the correct API URL.',
         apiUrl,
-        attempts: errors,
+        note: 'The URL above is built from Swagger: host + basePath + endpoint. If this still returns 404, check the basePath or if the API is accessible from outside the hospital network.',
+        attempts: results,
     });
 }
