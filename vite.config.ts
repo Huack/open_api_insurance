@@ -7,14 +7,4 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
-    server: {
-        proxy: {
-            '/api': {
-                target: 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, '/v1/insurances/resources'),
-                secure: true,
-            },
-        },
-    },
 })

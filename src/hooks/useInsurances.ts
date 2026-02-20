@@ -13,7 +13,7 @@ async function fetchInsurances(filters: InsuranceFilters): Promise<InsuranceApiR
     if (filters.id) params.id = filters.id;
     if (filters.ansCode) params.ansCode = filters.ansCode;
 
-    const { data } = await apiClient.get<InsuranceApiResponse>('', { params });
+    const { data } = await apiClient.get<InsuranceApiResponse>('/insurances', { params });
     return data;
 }
 
@@ -22,7 +22,7 @@ export function useInsurances(filters: InsuranceFilters) {
         queryKey: ['insurances', filters],
         queryFn: () => fetchInsurances(filters),
         placeholderData: (previousData) => previousData,
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 60 * 2,
         retry: 2,
     });
 }
