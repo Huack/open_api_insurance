@@ -1,16 +1,77 @@
-// Vercel Serverless Function — Proxy para API Tasy (Philips HSP)
+// Vercel Serverless Function — Proxy para API Tasy (via Sensedia Gateway)
 //
 // Swagger spec:
 //   host: api-gateway.b7ad-use1.30e5c8e.hsp.philips.com
 //   basePath: /v1/insurances/resources
 //   path: /api/v2/insurances/catalog
-//   Full URL = host + basePath + path
-//   Auth: BearerAuth (apiKey type, Authorization header)
+//   Auth: BearerAuth (via Sensedia OAuth2)
+//
+// Sensedia OAuth2 flow:
+//   POST /oauth/access-token
+//   Authorization: Basic base64(client_id:client_secret)
+//   grant_type=client_credentials
 
 const TASY_HOST = 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com';
 const BASE_PATH = '/v1/insurances/resources';
 const ENDPOINT = '/api/v2/insurances/catalog';
 const FULL_API_PATH = `${BASE_PATH}${ENDPOINT}`;
+
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getAccessToken(clientId, clientSecret) {
+    // Retorna token cacheado se válido (com 60s de margem)
+    if (cachedToken && Date.now() < tokenExpiry - 60000) {
+        return cachedToken;
+    }
+
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    // Sensedia usa /oauth/access-token para gerar tokens
+    const tokenUrls = [
+        `${TASY_HOST}/oauth/access-token`,
+        `${TASY_HOST}${BASE_PATH}/oauth/access-token`,
+        `${TASY_HOST}/oauth/token`,
+    ];
+
+    const errors = [];
+
+    for (const tokenUrl of tokenUrls) {
+        console.log(`[OAuth] Trying: ${tokenUrl}`);
+
+        try {
+            const response = await fetch(tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${basicAuth}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ grant_type: 'client_credentials' }),
+            });
+
+            const text = await response.text();
+            console.log(`[OAuth] ${tokenUrl} → ${response.status}: ${text.substring(0, 200)}`);
+
+            if (response.ok) {
+                try {
+                    const data = JSON.parse(text);
+                    if (data.access_token) {
+                        cachedToken = data.access_token;
+                        tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+                        console.log(`[OAuth] SUCCESS with ${tokenUrl}`);
+                        return cachedToken;
+                    }
+                } catch { /* continue */ }
+            }
+
+            errors.push(`${tokenUrl} → ${response.status}: ${text.substring(0, 300)}`);
+        } catch (e) {
+            errors.push(`${tokenUrl} → Error: ${e.message}`);
+        }
+    }
+
+    throw new Error(`OAuth2 token failed:\n${errors.join('\n')}`);
+}
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,88 +90,51 @@ export default async function handler(req, res) {
         });
     }
 
-    // Montar URL completa: host + basePath + endpoint + queryString
-    const url = new URL(req.url, `https://${req.headers.host}`);
-    const queryString = url.search || '';
-    const apiUrl = `${TASY_HOST}${FULL_API_PATH}${queryString}`;
+    try {
+        const token = await getAccessToken(clientId, clientSecret);
 
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        const url = new URL(req.url, `https://${req.headers.host}`);
+        const queryString = url.search || '';
+        const apiUrl = `${TASY_HOST}${FULL_API_PATH}${queryString}`;
 
-    // Swagger diz "BearerAuth" — tentar múltiplas formas de autenticação
-    const authAttempts = [
-        {
-            name: 'Bearer (client_id as token)',
-            headers: { 'Authorization': `Bearer ${clientId}` },
-        },
-        {
-            name: 'Bearer (client_secret as token)',
-            headers: { 'Authorization': `Bearer ${clientSecret}` },
-        },
-        {
-            name: 'Basic Auth (client_id:client_secret)',
-            headers: { 'Authorization': `Basic ${basicAuth}` },
-        },
-        {
-            name: 'API Key (client_id in header)',
+        console.log(`[API] GET ${apiUrl}`);
+
+        const apiResponse = await fetch(apiUrl, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${clientId}`,
-                'x-api-key': clientId,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
             },
-        },
-    ];
+        });
 
-    const results = [];
+        console.log(`[API] → ${apiResponse.status}`);
 
-    for (const auth of authAttempts) {
-        try {
-            console.log(`[${auth.name}] GET ${apiUrl}`);
+        if (apiResponse.status === 204) {
+            return res.status(200).json({ results: [], total: 0 });
+        }
 
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    ...auth.headers,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-            });
+        const text = await apiResponse.text();
 
-            const text = await response.text();
-            console.log(`[${auth.name}] → ${response.status}`);
-
-            if (response.status === 200) {
-                try {
-                    const data = JSON.parse(text);
-                    console.log(`SUCCESS: ${auth.name}`);
-                    return res.status(200).json(data);
-                } catch {
-                    return res.status(200).send(text);
-                }
-            }
-
-            if (response.status === 204) {
-                return res.status(200).json({ results: [], total: 0 });
-            }
-
-            results.push({
-                method: auth.name,
-                status: response.status,
-                body: text.substring(0, 500),
-            });
-        } catch (e) {
-            results.push({
-                method: auth.name,
-                status: 0,
-                body: e.message,
+        if (!apiResponse.ok) {
+            return res.status(apiResponse.status).json({
+                error: true,
+                status: apiResponse.status,
+                message: text,
+                apiUrl,
             });
         }
-    }
 
-    // Nenhuma tentativa funcionou
-    return res.status(500).json({
-        error: true,
-        message: 'All auth methods failed for the correct API URL.',
-        apiUrl,
-        note: 'The URL above is built from Swagger: host + basePath + endpoint. If this still returns 404, check the basePath or if the API is accessible from outside the hospital network.',
-        attempts: results,
-    });
+        try {
+            return res.status(200).json(JSON.parse(text));
+        } catch {
+            return res.status(200).send(text);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({
+            error: true,
+            message: error.message,
+        });
+    }
 }
