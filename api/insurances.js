@@ -1,12 +1,14 @@
 // Vercel Serverless Function — OAuth2 + Proxy para API Tasy
 const TASY_API_BASE = 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com';
 
-// Philips HSDP IAM OAuth2 endpoints por região
-// O gateway "b7ad-use1" indica região US-East
-const IAM_TOKEN_URLS = [
+// Possíveis endpoints OAuth2 para Philips HSP/Tasy
+const TOKEN_URLS = [
+    `${TASY_API_BASE}/authorize/oauth2/token`,
+    `${TASY_API_BASE}/api/api-gateway/v1/token`,
     'https://iam-client-test.us-east.philips-healthsuite.com/oauth2/token',
     'https://iam.us-east.philips-healthsuite.com/oauth2/token',
-    'https://iam-service.us-east.philips-healthsuite.com/authorize/oauth2/token',
+    `${TASY_API_BASE}/oauth2/token`,
+    `${TASY_API_BASE}/auth/realms/master/protocol/openid-connect/token`,
 ];
 
 let cachedToken = null;
@@ -14,52 +16,51 @@ let tokenExpiry = 0;
 let workingTokenUrl = null;
 
 async function tryGetToken(url, clientId, clientSecret) {
-    // Tentar com Basic Auth
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${basicAuth}`,
-            'api-version': '2',
-        },
-        body: new URLSearchParams({
-            grant_type: 'client_credentials',
-        }),
-    });
+    // Tentativa 1: Basic Auth header
+    try {
+        const r1 = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Basic ${basicAuth}`,
+                'api-version': '2',
+            },
+            body: new URLSearchParams({ grant_type: 'client_credentials' }),
+        });
 
-    if (response.ok) {
-        const data = await response.json();
-        return { success: true, data, url, method: 'basic_auth' };
+        if (r1.ok) {
+            const data = await r1.json();
+            if (data.access_token) return { ok: true, data, method: 'basic_auth' };
+        }
+    } catch (e) { /* continue */ }
+
+    // Tentativa 2: Credentials no body
+    try {
+        const r2 = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'api-version': '2',
+            },
+            body: new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: clientId,
+                client_secret: clientSecret,
+            }),
+        });
+
+        if (r2.ok) {
+            const data = await r2.json();
+            if (data.access_token) return { ok: true, data, method: 'body' };
+        }
+
+        const text = await r2.text().catch(() => '');
+        return { ok: false, status: r2.status, error: text };
+    } catch (e) {
+        return { ok: false, status: 0, error: e.message };
     }
-
-    // Se falhou, tentar com credenciais no body
-    const response2 = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'api-version': '2',
-        },
-        body: new URLSearchParams({
-            grant_type: 'client_credentials',
-            client_id: clientId,
-            client_secret: clientSecret,
-        }),
-    });
-
-    if (response2.ok) {
-        const data = await response2.json();
-        return { success: true, data, url, method: 'body_credentials' };
-    }
-
-    const errorText = await response2.text();
-    return {
-        success: false,
-        status: response2.status,
-        error: errorText,
-        url,
-    };
 }
 
 async function getAccessToken() {
@@ -71,43 +72,35 @@ async function getAccessToken() {
     const clientSecret = process.env.TASY_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new Error(
-            'Missing TASY_CLIENT_ID or TASY_CLIENT_SECRET environment variables.'
-        );
+        throw new Error('Missing TASY_CLIENT_ID or TASY_CLIENT_SECRET env vars.');
     }
 
-    // Se já temos um URL que funcionou antes, usar ele primeiro
+    // Se já temos URL que funcionou, usar direto
     if (workingTokenUrl) {
         const result = await tryGetToken(workingTokenUrl, clientId, clientSecret);
-        if (result.success) {
+        if (result.ok) {
             cachedToken = result.data.access_token;
             tokenExpiry = Date.now() + (result.data.expires_in || 3600) * 1000;
             return cachedToken;
         }
-        workingTokenUrl = null; // Reset se falhou
+        workingTokenUrl = null;
     }
 
-    // Tentar cada URL de token
     const errors = [];
-    for (const url of IAM_TOKEN_URLS) {
-        console.log(`Trying OAuth2 token URL: ${url}`);
+    for (const url of TOKEN_URLS) {
+        console.log(`Trying: ${url}`);
         const result = await tryGetToken(url, clientId, clientSecret);
-
-        if (result.success) {
-            console.log(`SUCCESS with ${url} (method: ${result.method})`);
+        if (result.ok) {
+            console.log(`SUCCESS: ${url} (${result.method})`);
             workingTokenUrl = url;
             cachedToken = result.data.access_token;
             tokenExpiry = Date.now() + (result.data.expires_in || 3600) * 1000;
             return cachedToken;
         }
-
-        errors.push(`${url}: ${result.status} - ${result.error}`);
-        console.log(`FAILED ${url}: ${result.status}`);
+        errors.push(`${url} → ${result.status}: ${result.error?.substring(0, 200)}`);
     }
 
-    throw new Error(
-        `All OAuth2 token endpoints failed. Attempts:\n${errors.join('\n')}`
-    );
+    throw new Error(`All OAuth2 endpoints failed:\n${errors.join('\n')}`);
 }
 
 export default async function handler(req, res) {
@@ -115,9 +108,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    if (req.method === 'OPTIONS') return res.status(200).end();
 
     try {
         const token = await getAccessToken();
@@ -125,8 +116,9 @@ export default async function handler(req, res) {
         const url = new URL(req.url, `https://${req.headers.host}`);
         const queryString = url.search || '';
 
-        const apiUrl = `${TASY_API_BASE}/v1/insurances/resources${queryString}`;
-        console.log(`Proxying to: ${apiUrl}`);
+        // Endpoint correto: /api/v2/insurances/catalog
+        const apiUrl = `${TASY_API_BASE}/api/v2/insurances/catalog${queryString}`;
+        console.log(`Proxying: ${apiUrl}`);
 
         const apiResponse = await fetch(apiUrl, {
             method: 'GET',
@@ -137,28 +129,31 @@ export default async function handler(req, res) {
             },
         });
 
-        const responseText = await apiResponse.text();
-        console.log(`API response: ${apiResponse.status}`);
+        // 204 = sem resultados
+        if (apiResponse.status === 204) {
+            return res.status(200).json({ results: [], total: 0 });
+        }
+
+        const text = await apiResponse.text();
 
         if (!apiResponse.ok) {
             return res.status(apiResponse.status).json({
                 error: true,
                 status: apiResponse.status,
-                message: responseText,
+                message: text,
             });
         }
 
         try {
-            const data = JSON.parse(responseText);
-            return res.status(200).json(data);
+            return res.status(200).json(JSON.parse(text));
         } catch {
-            return res.status(200).send(responseText);
+            return res.status(200).send(text);
         }
     } catch (error) {
-        console.error('Proxy error:', error);
+        console.error('Error:', error);
         return res.status(500).json({
             error: true,
-            message: error.message || 'Internal server error',
+            message: error.message,
         });
     }
 }

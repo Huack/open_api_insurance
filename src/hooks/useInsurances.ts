@@ -10,7 +10,7 @@ async function fetchInsurances(filters: InsuranceFilters): Promise<InsuranceApiR
 
     if (filters.status) params.status = filters.status;
     if (filters.insuranceType) params.insuranceType = filters.insuranceType;
-    if (filters.id) params.id = filters.id;
+    if (filters.insuranceId) params.insuranceId = filters.insuranceId;
     if (filters.ansCode) params.ansCode = filters.ansCode;
 
     const { data } = await apiClient.get<InsuranceApiResponse>('/insurances', { params });

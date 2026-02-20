@@ -13,11 +13,11 @@ import type { Insurance, InsuranceFilters } from './types/insurance';
 const queryClient = new QueryClient();
 
 const DEFAULT_FILTERS: InsuranceFilters = {
-    page: 0,
-    size: 15,
+    page: 1,
+    size: 50,
     status: '',
     insuranceType: '',
-    id: '',
+    insuranceId: '',
     ansCode: '',
 };
 
@@ -35,6 +35,9 @@ function Dashboard() {
         setFilters(DEFAULT_FILTERS);
     }, []);
 
+    const results = data?.results || [];
+    const total = data?.total || 0;
+
     return (
         <div className="min-h-screen bg-slate-950 text-white">
             {/* Background decoration */}
@@ -50,10 +53,10 @@ function Dashboard() {
                     {/* Stats bar */}
                     {data && (
                         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            <StatCard label="Total de Convênios" value={data.totalElements} />
-                            <StatCard label="Página Atual" value={`${data.number + 1} / ${data.totalPages || 1}`} />
-                            <StatCard label="Por Página" value={data.size} />
-                            <StatCard label="Registros na Página" value={data.content.length} />
+                            <StatCard label="Total de Convênios" value={total} />
+                            <StatCard label="Página Atual" value={`${filters.page} / ${Math.ceil(total / filters.size) || 1}`} />
+                            <StatCard label="Por Página" value={filters.size} />
+                            <StatCard label="Exibindo" value={results.length} />
                         </div>
                     )}
 
@@ -71,18 +74,18 @@ function Dashboard() {
                                 message={(error as Error)?.message}
                                 onRetry={() => refetch()}
                             />
-                        ) : data && data.content.length === 0 ? (
+                        ) : results.length === 0 ? (
                             <EmptyState />
-                        ) : data ? (
+                        ) : (
                             <InsuranceTable
-                                data={data.content}
+                                data={results}
                                 onSelect={setSelected}
-                                page={data.number}
-                                totalPages={data.totalPages}
-                                totalElements={data.totalElements}
+                                page={filters.page}
+                                totalItems={total}
+                                pageSize={filters.size}
                                 onPageChange={(p) => handleFilterChange({ page: p })}
                             />
-                        ) : null}
+                        )}
                     </div>
                 </main>
             </div>

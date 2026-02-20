@@ -1,4 +1,4 @@
-import { X, Layers, FileText, ShieldCheck } from 'lucide-react';
+import { X, Layers, FileText, ShieldCheck, Calendar } from 'lucide-react';
 import type { Insurance } from '../types/insurance';
 import { InsuranceStatus } from '../types/insurance';
 import { formatCNPJ } from '../utils/formatCNPJ';
@@ -23,10 +23,10 @@ export default function DetailModal({ insurance, onClose }: DetailModalProps) {
                 <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-slate-800/95 px-6 py-4 backdrop-blur-sm">
                     <div>
                         <h2 className="text-lg font-bold text-white">
-                            {insurance.legalEntity?.commercialName || insurance.description}
+                            {insurance.commercialName || insurance.insuranceDescription}
                         </h2>
                         <p className="mt-0.5 text-xs text-slate-400">
-                            Convênio #{insurance.id}
+                            Convênio #{insurance.insuranceId}
                         </p>
                     </div>
                     <button
@@ -43,12 +43,12 @@ export default function DetailModal({ insurance, onClose }: DetailModalProps) {
                         <InfoCard
                             icon={<FileText className="h-4 w-4 text-cyan-400" />}
                             label="Razão Social"
-                            value={insurance.legalEntity?.corporateName || '—'}
+                            value={insurance.corporateName || '—'}
                         />
                         <InfoCard
                             icon={<ShieldCheck className="h-4 w-4 text-cyan-400" />}
                             label="CNPJ"
-                            value={formatCNPJ(insurance.legalEntity?.legalEntityId || '')}
+                            value={formatCNPJ(insurance.legalEntityCode || '')}
                         />
                         <InfoCard
                             icon={<Layers className="h-4 w-4 text-cyan-400" />}
@@ -67,23 +67,58 @@ export default function DetailModal({ insurance, onClose }: DetailModalProps) {
                             label="Status"
                             value={getStatusLabel(insurance.status)}
                         />
+                        {insurance.ansCode && (
+                            <InfoCard
+                                icon={<ShieldCheck className="h-4 w-4 text-cyan-400" />}
+                                label="Código ANS"
+                                value={insurance.ansCode}
+                            />
+                        )}
+                        {insurance.inclusionDate && (
+                            <InfoCard
+                                icon={<Calendar className="h-4 w-4 text-cyan-400" />}
+                                label="Data Inclusão"
+                                value={new Date(insurance.inclusionDate).toLocaleDateString('pt-BR')}
+                            />
+                        )}
                     </div>
+
+                    {/* Plans */}
+                    {insurance.plans && insurance.plans.length > 0 && (
+                        <div>
+                            <h3 className="mb-3 text-sm font-semibold text-white">Planos</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {insurance.plans.map((plan) => (
+                                    <span
+                                        key={plan.insurancePlanId}
+                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium ring-1 ${plan.status === 'ACTIVE'
+                                                ? 'bg-cyan-500/10 text-cyan-300 ring-cyan-500/20'
+                                                : 'bg-slate-500/10 text-slate-400 ring-slate-500/20'
+                                            }`}
+                                    >
+                                        {plan.planDescription}
+                                        {plan.ansPlanCode && (
+                                            <span className="ml-1 text-[10px] opacity-60">({plan.ansPlanCode})</span>
+                                        )}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Categories */}
                     {insurance.categories && insurance.categories.length > 0 && (
                         <div>
-                            <h3 className="mb-3 text-sm font-semibold text-white">
-                                Categorias & Planos
-                            </h3>
+                            <h3 className="mb-3 text-sm font-semibold text-white">Categorias</h3>
                             <div className="space-y-3">
                                 {insurance.categories.map((cat) => (
                                     <div
-                                        key={cat.id}
+                                        key={cat.categoryId}
                                         className="rounded-xl border border-white/10 bg-slate-900/50 p-4"
                                     >
                                         <div className="mb-2 flex items-center justify-between">
                                             <span className="text-sm font-medium text-white">
-                                                {cat.description}
+                                                {cat.categoryDescription}
                                             </span>
                                             <span
                                                 className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cat.status === 'ACTIVE'
@@ -96,17 +131,17 @@ export default function DetailModal({ insurance, onClose }: DetailModalProps) {
                                         </div>
                                         {cat.accommodation && (
                                             <p className="mb-2 text-xs text-slate-400">
-                                                Acomodação: {cat.accommodation}
+                                                Acomodação: {cat.accommodation.accommodationTypeDescription}
                                             </p>
                                         )}
-                                        {cat.plans && cat.plans.length > 0 && (
+                                        {cat.insuranceCategoryPlan && cat.insuranceCategoryPlan.length > 0 && (
                                             <div className="flex flex-wrap gap-1.5">
-                                                {cat.plans.map((plan) => (
+                                                {cat.insuranceCategoryPlan.map((plan) => (
                                                     <span
-                                                        key={plan.id}
-                                                        className="rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-medium text-cyan-300 ring-1 ring-cyan-500/20"
+                                                        key={`${plan.sequenceId}-${plan.planId}`}
+                                                        className="rounded-md bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-300 ring-1 ring-violet-500/20"
                                                     >
-                                                        {plan.description}
+                                                        {plan.planDescription}
                                                     </span>
                                                 ))}
                                             </div>
@@ -117,14 +152,15 @@ export default function DetailModal({ insurance, onClose }: DetailModalProps) {
                         </div>
                     )}
 
-                    {(!insurance.categories || insurance.categories.length === 0) && (
-                        <div className="rounded-xl border border-dashed border-white/10 py-8 text-center">
-                            <Layers className="mx-auto mb-2 h-8 w-8 text-slate-600" />
-                            <p className="text-sm text-slate-400">
-                                Nenhuma categoria disponível para este convênio.
-                            </p>
-                        </div>
-                    )}
+                    {(!insurance.categories || insurance.categories.length === 0) &&
+                        (!insurance.plans || insurance.plans.length === 0) && (
+                            <div className="rounded-xl border border-dashed border-white/10 py-8 text-center">
+                                <Layers className="mx-auto mb-2 h-8 w-8 text-slate-600" />
+                                <p className="text-sm text-slate-400">
+                                    Nenhuma categoria ou plano disponível.
+                                </p>
+                            </div>
+                        )}
                 </div>
             </div>
         </div>
