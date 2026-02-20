@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { Insurance } from '../types/insurance';
 import { InsuranceStatus } from '../types/insurance';
 import { formatCNPJ } from '../utils/formatCNPJ';
@@ -23,65 +22,88 @@ export default function InsuranceTable({
 }: InsuranceTableProps) {
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-    return (
-        <div className="flex-1 overflow-hidden rounded-2xl glass glow-cyan animate-fade-in">
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[750px] text-left text-sm">
-                    <thead>
-                        <tr className="border-b border-white/10 bg-gradient-to-r from-slate-900/80 to-slate-800/40">
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                ID
-                            </th>
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                Nome Comercial
-                            </th>
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                CNPJ
-                            </th>
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                Tipo
-                            </th>
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                Status
-                            </th>
-                            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-cyan-400/80">
+    // Generate page numbers for pagination
+    const getPageNumbers = () => {
+        const pages: (number | '...')[] = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (page > 3) pages.push('...');
+            for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+                pages.push(i);
+            }
+            if (page < totalPages - 2) pages.push('...');
+            pages.push(totalPages);
+        }
+        return pages;
+    };
 
-                            </th>
+    const startItem = (page - 1) * pageSize + 1;
+    const endItem = Math.min(page * pageSize, totalItems);
+
+    return (
+        <div className="lg:col-span-3 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[600px] animate-fade-in">
+            {/* Table Header */}
+            <div className="p-6 border-b border-[#1e293b] flex items-center justify-between bg-slate-800/20">
+                <div className="flex items-center space-x-4">
+                    <h2 className="font-bold text-white">Lista de Convênios</h2>
+                    <span className="px-2 py-0.5 rounded-md bg-[#00d4ff]/20 text-[#00d4ff] text-[10px] font-bold tracking-widest">
+                        PÁGINA {page}
+                    </span>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto flex-grow">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-900/30">
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Convênio</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">CNPJ</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="stagger-children">
+                    <tbody className="divide-y divide-[#1e293b]">
                         {data.map((ins) => (
                             <tr
                                 key={ins.insuranceId}
+                                className="table-row-hover group cursor-pointer"
                                 onClick={() => onSelect(ins)}
-                                className="group cursor-pointer table-row-hover border-b border-white/5 last:border-b-0"
                             >
-                                <td className="whitespace-nowrap px-5 py-4">
-                                    <span className="inline-flex items-center rounded-lg bg-slate-800/80 px-2.5 py-1 font-mono text-xs font-bold text-cyan-300 ring-1 ring-cyan-500/20">
-                                        #{ins.insuranceId}
+                                <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                                    #{ins.insuranceId}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-semibold text-white row-name transition-colors">
+                                            {ins.commercialName || ins.insuranceDescription}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">
+                                            {getInsuranceTypeLabel(ins.insuranceType)}
+                                            {ins.corporateName && ` • ${ins.corporateName}`}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className="text-xs font-mono px-2 py-1 bg-slate-800 rounded">
+                                        {formatCNPJ(ins.legalEntityCode || '') || '—'}
                                     </span>
                                 </td>
-                                <td className="px-5 py-4">
-                                    <div className="font-semibold text-white group-hover:text-cyan-200 transition-colors">
-                                        {ins.commercialName || ins.insuranceDescription}
-                                    </div>
-                                    {ins.corporateName && ins.corporateName !== ins.commercialName && (
-                                        <div className="mt-0.5 text-[11px] text-slate-500 truncate max-w-[250px]">
-                                            {ins.corporateName}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="whitespace-nowrap px-5 py-4 font-mono text-xs text-slate-400">
-                                    {formatCNPJ(ins.legalEntityCode || '')}
-                                </td>
-                                <td className="whitespace-nowrap px-5 py-4">
-                                    <TypeBadge type={ins.insuranceType} />
-                                </td>
-                                <td className="whitespace-nowrap px-5 py-4">
+                                <td className="px-6 py-4 text-center">
                                     <StatusBadge status={ins.status} />
                                 </td>
-                                <td className="px-5 py-4 text-right">
-                                    <ExternalLink className="h-3.5 w-3.5 text-slate-600 transition-colors group-hover:text-cyan-400" />
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end space-x-2">
+                                        <button
+                                            className="p-2 text-slate-400 hover:text-[#00d4ff] hover:bg-[#00d4ff]/10 rounded-lg transition-all"
+                                            onClick={(e) => { e.stopPropagation(); onSelect(ins); }}
+                                        >
+                                            <span className="material-symbols-rounded text-lg">visibility</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -90,56 +112,63 @@ export default function InsuranceTable({
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between border-t border-white/8 bg-gradient-to-r from-slate-900/60 to-transparent px-5 py-3.5">
-                <p className="text-xs text-slate-400">
-                    <span className="font-bold text-white">{totalItems.toLocaleString('pt-BR')}</span> convênios
+            <div className="p-6 border-t border-[#1e293b] flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                <p className="text-xs text-slate-500">
+                    Mostrando <span className="font-bold text-white">{startItem} - {endItem}</span> de{' '}
+                    <span className="font-bold text-white">{totalItems.toLocaleString('pt-BR')}</span> registros
                 </p>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center space-x-2">
+                    <button
+                        disabled={page <= 1}
+                        onClick={() => onPageChange(1)}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                    >
+                        <span className="material-symbols-rounded">first_page</span>
+                    </button>
                     <button
                         disabled={page <= 1}
                         onClick={() => onPageChange(page - 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 ring-1 ring-white/5 transition-all hover:bg-white/5 hover:text-white disabled:pointer-events-none disabled:opacity-20"
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
                     >
-                        <ChevronLeft className="h-4 w-4" />
+                        <span className="material-symbols-rounded">chevron_left</span>
                     </button>
 
-                    <div className="flex items-center gap-1 px-2">
-                        <span className="rounded-md bg-cyan-500/15 px-2.5 py-1 text-xs font-bold text-cyan-300">
-                            {page}
-                        </span>
-                        <span className="text-xs text-slate-500">/</span>
-                        <span className="text-xs font-medium text-slate-400">{totalPages}</span>
+                    <div className="flex space-x-1">
+                        {getPageNumbers().map((p, i) =>
+                            p === '...' ? (
+                                <span key={`dots-${i}`} className="px-2 text-slate-500">...</span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    onClick={() => onPageChange(p as number)}
+                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === page
+                                            ? 'bg-[#00d4ff] text-slate-900'
+                                            : 'hover:bg-slate-800 text-slate-300'
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        )}
                     </div>
 
                     <button
                         disabled={page >= totalPages}
                         onClick={() => onPageChange(page + 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 ring-1 ring-white/5 transition-all hover:bg-white/5 hover:text-white disabled:pointer-events-none disabled:opacity-20"
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
                     >
-                        <ChevronRight className="h-4 w-4" />
+                        <span className="material-symbols-rounded">chevron_right</span>
+                    </button>
+                    <button
+                        disabled={page >= totalPages}
+                        onClick={() => onPageChange(totalPages)}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                    >
+                        <span className="material-symbols-rounded">last_page</span>
                     </button>
                 </div>
             </div>
         </div>
-    );
-}
-
-function TypeBadge({ type }: { type: string }) {
-    const colorMap: Record<string, string> = {
-        PRIVATE: 'bg-violet-500/10 text-violet-300 ring-violet-500/20',
-        SUS: 'bg-amber-500/10 text-amber-300 ring-amber-500/20',
-        SELF_PAYMENT: 'bg-blue-500/10 text-blue-300 ring-blue-500/20',
-        PUBLIC: 'bg-teal-500/10 text-teal-300 ring-teal-500/20',
-        MEDICARE: 'bg-pink-500/10 text-pink-300 ring-pink-500/20',
-        HEALTH_INSURANCE: 'bg-indigo-500/10 text-indigo-300 ring-indigo-500/20',
-    };
-
-    const classes = colorMap[type] || 'bg-slate-500/10 text-slate-300 ring-slate-500/20';
-
-    return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${classes}`}>
-            {getInsuranceTypeLabel(type)}
-        </span>
     );
 }
 
@@ -148,15 +177,12 @@ function StatusBadge({ status }: { status: string }) {
 
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${isActive
-                    ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-                    : 'bg-rose-500/10 text-rose-400 ring-rose-500/20'
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${isActive
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
                 }`}
         >
-            <span
-                className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'
-                    }`}
-            />
+            <span className={`w-1 h-1 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
             {getStatusLabel(status)}
         </span>
     );
