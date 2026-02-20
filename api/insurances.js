@@ -1,7 +1,10 @@
 // Vercel Serverless Function — Proxy para API Tasy (via Sensedia Gateway)
 //
-// Auth: Bearer token obtido via Sensedia API Manager
-// Swagger: host + basePath(/v1/insurances/resources) + path(/api/v2/insurances/catalog)
+// Sensedia requer DOIS headers para autenticação:
+//   1. client_id: header com o ID do app registrado no Sensedia
+//   2. Authorization: Bearer {token} obtido na aba "TOKENS DE ACESSO"
+//
+// URL = host + basePath + endpoint
 
 const TASY_HOST = 'https://api-gateway.b7ad-use1.30e5c8e.hsp.philips.com';
 const BASE_PATH = '/v1/insurances/resources';
@@ -15,17 +18,17 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    const clientId = process.env.TASY_CLIENT_ID;
     const token = process.env.TASY_BEARER_TOKEN;
 
-    if (!token) {
+    if (!clientId || !token) {
         return res.status(500).json({
             error: true,
-            message: 'Missing TASY_BEARER_TOKEN environment variable. Get your token from the Sensedia API Manager "TOKENS DE ACESSO" tab.',
+            message: `Missing env vars. TASY_CLIENT_ID: ${!!clientId}, TASY_BEARER_TOKEN: ${!!token}`,
         });
     }
 
     try {
-        // Montar URL completa: host + basePath + endpoint + queryString
         const url = new URL(req.url, `https://${req.headers.host}`);
         const queryString = url.search || '';
         const apiUrl = `${TASY_HOST}${FULL_API_PATH}${queryString}`;
@@ -36,6 +39,7 @@ export default async function handler(req, res) {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
+                'client_id': clientId,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
@@ -43,7 +47,6 @@ export default async function handler(req, res) {
 
         console.log(`[API] → ${apiResponse.status}`);
 
-        // 204 = sem resultados
         if (apiResponse.status === 204) {
             return res.status(200).json({ results: [], total: 0 });
         }
