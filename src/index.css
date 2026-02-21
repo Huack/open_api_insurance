@@ -1,10 +1,16 @@
 @import "tailwindcss";
 
-/* ─── Custom Theme Colors ─────────────────────────────── */
+@layer base {
+  body {
+    @apply font-sans antialiased bg-[#f8fafc] dark:bg-[#070b14] text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
 
 :root {
   --primary: #00d4ff;
-  --bg-dark: #070b14;
+  --background-light: #f8fafc;
+  --background-dark: #070b14;
   --card-dark: #0f172a;
   --border-dark: #1e293b;
   --accent-cyan: #00d4ff;
@@ -14,85 +20,91 @@
   --accent-danger: #ef4444;
 }
 
-/* ─── Base ─────────────────────────────────────────────── */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark);
-  color: #e2e8f0;
-  min-height: 100vh;
-}
-
-/* ─── Material Symbols ─────────────────────────────────── */
-
-.material-symbols-rounded {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
-}
-
-/* ─── Glass Effect ─────────────────────────────────────── */
-
+/* Custom Utilities from provided HTML */
 .glass-effect {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
-
-/* ─── Sidebar Gradient ─────────────────────────────────── */
 
 .sidebar-gradient {
   background: linear-gradient(180deg, rgba(0, 212, 255, 0.03) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* ─── Glow Accent ──────────────────────────────────────── */
-
 .glow-accent {
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
 }
 
-/* ─── Scrollbar ────────────────────────────────────────── */
+/* ─── Global Reset & Base ────────────────────────────── */
+/* Tailwind Preflight handles basic resets. Unlayered rules override Tailwind v4 layers! */
+
+@layer base {
+  body {
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ─── Material Symbols Configuration ────────────────── */
+
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+/* ─── Layout Foundation ─────────────────────────────── */
+
+.dashboard-container {
+  max-width: 1536px;
+  /* 2xl breakpoint for enterprise desktop */
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ─── Enterprise Surfaces (No more flat glass) ────────── */
+
+/* A solid, reliable card surface */
+.surface-card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.surface-card-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.surface-card-hover:hover {
+  border-color: #334155;
+  /* Slate 700 */
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+}
+
+/* ─── Expert Scrollbar ─────────────────────────────── */
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  background: #334155;
+  /* Slate 700 */
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #475569;
+  /* Slate 600 */
 }
 
-/* ─── Select Dropdown ──────────────────────────────────── */
-
-select option {
-  background-color: #0f172a;
-  color: #f8fafc;
-}
-
-/* ─── Animations ───────────────────────────────────────── */
+/* ─── Custom Animations ────────────────────────────── */
 
 @keyframes fadeIn {
   from {
@@ -106,36 +118,17 @@ select option {
   }
 }
 
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-slide-in {
-  animation: slideInLeft 0.4s ease-out forwards;
-}
-
-/* ─── Table Row Hover ──────────────────────────────────── */
+/* ─── Table Utilities ──────────────────────────────── */
 
 .table-row-hover {
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .table-row-hover:hover {
-  background: rgba(0, 212, 255, 0.03);
-}
-
-.table-row-hover:hover .row-name {
-  color: var(--primary);
+  background-color: rgba(15, 23, 42, 0.6);
+  /* Slightly lighter slate */
 }

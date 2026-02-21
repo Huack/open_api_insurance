@@ -12,65 +12,48 @@ interface InsuranceTableProps {
     onPageChange: (page: number) => void;
 }
 
-export default function InsuranceTable({
-    data,
-    onSelect,
-    page,
-    totalItems,
-    pageSize,
-    onPageChange,
-}: InsuranceTableProps) {
+export default function InsuranceTable({ data, onSelect, page, totalItems, pageSize, onPageChange }: InsuranceTableProps) {
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-    // Generate page numbers for pagination
-    const getPageNumbers = () => {
-        const pages: (number | '...')[] = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else {
-            pages.push(1);
-            if (page > 3) pages.push('...');
-            for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-                pages.push(i);
-            }
-            if (page < totalPages - 2) pages.push('...');
-            pages.push(totalPages);
-        }
-        return pages;
-    };
-
-    const startItem = (page - 1) * pageSize + 1;
-    const endItem = Math.min(page * pageSize, totalItems);
-
     return (
-        <div className="lg:col-span-3 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[600px] animate-fade-in">
-            {/* Table Header */}
-            <div className="p-6 border-b border-[#1e293b] flex items-center justify-between bg-slate-800/20">
+        <div className="flex flex-col h-full bg-transparent">
+            {/* Toolbar Header */}
+            <div className="p-6 border-b border-slate-200 dark:border-[#1e293b] flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
                 <div className="flex items-center space-x-4">
-                    <h2 className="font-bold text-white">Lista de Convênios</h2>
-                    <span className="px-2 py-0.5 rounded-md bg-[#00d4ff]/20 text-[#00d4ff] text-[10px] font-bold tracking-widest">
-                        PÁGINA {page}
-                    </span>
+                    <h2 className="font-bold text-slate-900 dark:text-white">Lista de Convênios</h2>
+                    <span className="px-2 py-0.5 rounded-md bg-[#00d4ff]/20 text-[#00d4ff] text-[10px] font-bold tracking-widest">ANALYSIS MODE</span>
+                    <span className="text-xs text-slate-500 font-medium">8 colunas visíveis</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                    <button className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 transition-all">
+                        <span className="material-symbols-rounded text-lg">download</span>
+                        <span>EXPORTAR CSV</span>
+                    </button>
+                    <button className="flex items-center space-x-2 bg-[#00d4ff] hover:bg-[#00d4ff]/90 text-slate-900 px-4 py-2 rounded-xl text-xs font-bold transition-all glow-accent">
+                        <span className="material-symbols-rounded text-lg">add</span>
+                        <span>NOVO CONVÊNIO</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto flex-grow">
-                <table className="w-full text-left border-collapse">
+            {/* Scrollable Table Area */}
+            <div className="overflow-x-auto flex-grow bg-slate-50/50 dark:bg-[#0f172a]/30">
+                <table className="w-full text-left border-collapse table-fixed lg:table-auto">
                     <thead>
-                        <tr className="bg-slate-900/30">
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Convênio</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">CNPJ</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                        <tr className="bg-slate-50/50 dark:bg-[#0f172a]/60">
+                            <th className="px-6 py-4 w-20 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">ID</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Convênio</th>
+                            <th className="px-6 py-4 w-32 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Código ANS</th>
+                            <th className="px-6 py-4 w-40 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Doc. Fiscal</th>
+                            <th className="px-6 py-4 w-32 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Status</th>
+                            <th className="px-6 py-4 w-24 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1e293b]">
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#1e293b]">
                         {data.map((ins) => (
                             <tr
                                 key={ins.insuranceId}
-                                className="table-row-hover group cursor-pointer"
+                                className="hover:bg-slate-50/50 dark:hover:bg-[#00d4ff]/5 transition-colors group cursor-pointer"
                                 onClick={() => onSelect(ins)}
                             >
                                 <td className="px-6 py-4 text-xs font-mono text-slate-400">
@@ -78,30 +61,26 @@ export default function InsuranceTable({
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-semibold text-white row-name transition-colors">
-                                            {ins.commercialName || ins.insuranceDescription}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500">
-                                            {getInsuranceTypeLabel(ins.insuranceType)}
-                                            {ins.corporateName && ` • ${ins.corporateName}`}
-                                        </span>
+                                        <span className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-[#00d4ff] transition-colors">{ins.commercialName || ins.insuranceDescription}</span>
+                                        <span className="text-[10px] text-slate-500">{getInsuranceTypeLabel(ins.insuranceType)}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className="text-xs font-mono px-2 py-1 bg-slate-800 rounded">
-                                        {formatCNPJ(ins.legalEntityCode || '') || '—'}
-                                    </span>
+                                    <span className="text-xs font-mono px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded">{ins.ansCode || '---'}</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className="text-xs font-mono text-slate-400">{formatCNPJ(ins.legalEntityCode || '') || 'Não Informado'}</span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <StatusBadge status={ins.status} />
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end space-x-2">
-                                        <button
-                                            className="p-2 text-slate-400 hover:text-[#00d4ff] hover:bg-[#00d4ff]/10 rounded-lg transition-all"
-                                            onClick={(e) => { e.stopPropagation(); onSelect(ins); }}
-                                        >
+                                    <div className="flex justify-end space-x-1">
+                                        <button className="p-1.5 text-slate-400 hover:text-[#00d4ff] hover:bg-[#00d4ff]/10 rounded-lg transition-all" aria-label="Visualizar">
                                             <span className="material-symbols-rounded text-lg">visibility</span>
+                                        </button>
+                                        <button className="p-1.5 text-slate-400 hover:text-[#00d4ff] hover:bg-[#00d4ff]/10 rounded-lg transition-all" aria-label="Editar">
+                                            <span className="material-symbols-rounded text-lg">edit</span>
                                         </button>
                                     </div>
                                 </td>
@@ -111,58 +90,73 @@ export default function InsuranceTable({
                 </table>
             </div>
 
-            {/* Pagination */}
-            <div className="p-6 border-t border-[#1e293b] flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-                <p className="text-xs text-slate-500">
-                    Mostrando <span className="font-bold text-white">{startItem} - {endItem}</span> de{' '}
-                    <span className="font-bold text-white">{totalItems.toLocaleString('pt-BR')}</span> registros
-                </p>
+            {/* Enterprise Pagination Footer */}
+            <div className="p-6 border-t border-slate-200 dark:border-[#1e293b] flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 bg-slate-50/30 dark:bg-slate-900/10">
+                <div className="flex items-center space-x-4">
+                    <p className="text-xs text-slate-500">
+                        Mostrando <span className="font-bold text-slate-900 dark:text-white">{Math.min((page - 1) * pageSize + 1, totalItems)} - {Math.min(page * pageSize, totalItems)}</span> de <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> registros
+                    </p>
+                    <div className="h-4 w-[1px] bg-slate-700"></div>
+                    <select className="bg-transparent border-none text-xs font-bold text-[#00d4ff] focus:ring-0 cursor-pointer outline-none appearance-none">
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+
                 <div className="flex items-center space-x-2">
                     <button
-                        disabled={page <= 1}
                         onClick={() => onPageChange(1)}
-                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                        disabled={page === 1}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none"
                     >
                         <span className="material-symbols-rounded">first_page</span>
                     </button>
                     <button
-                        disabled={page <= 1}
                         onClick={() => onPageChange(page - 1)}
-                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                        disabled={page === 1}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none"
                     >
                         <span className="material-symbols-rounded">chevron_left</span>
                     </button>
 
                     <div className="flex space-x-1">
-                        {getPageNumbers().map((p, i) =>
-                            p === '...' ? (
-                                <span key={`dots-${i}`} className="px-2 text-slate-500">...</span>
-                            ) : (
+                        {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                            let p = i + 1;
+                            if (totalPages > 5 && page > 3) {
+                                p = page - 2 + i;
+                                if (p > totalPages) p = totalPages - (4 - i);
+                            }
+
+                            const isActive = p === page;
+
+                            return (
                                 <button
                                     key={p}
-                                    onClick={() => onPageChange(p as number)}
-                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === page
-                                            ? 'bg-[#00d4ff] text-slate-900'
-                                            : 'hover:bg-slate-800 text-slate-300'
+                                    onClick={() => onPageChange(p)}
+                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${isActive
+                                        ? 'bg-[#00d4ff] text-slate-900 shadow-lg shadow-[#00d4ff]/20'
+                                        : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                                         }`}
                                 >
                                     {p}
                                 </button>
-                            )
+                            );
+                        })}
+                        {totalPages > 5 && page < totalPages - 2 && (
+                            <span className="px-2 text-slate-500 flex items-end">...</span>
                         )}
                     </div>
 
                     <button
-                        disabled={page >= totalPages}
                         onClick={() => onPageChange(page + 1)}
-                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                        disabled={page === totalPages}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none"
                     >
                         <span className="material-symbols-rounded">chevron_right</span>
                     </button>
                     <button
-                        disabled={page >= totalPages}
                         onClick={() => onPageChange(totalPages)}
-                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30"
+                        disabled={page === totalPages}
+                        className="p-2 text-slate-500 hover:text-[#00d4ff] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none"
                     >
                         <span className="material-symbols-rounded">last_page</span>
                     </button>
@@ -174,15 +168,12 @@ export default function InsuranceTable({
 
 function StatusBadge({ status }: { status: string }) {
     const isActive = status === InsuranceStatus.ACTIVE;
-
     return (
-        <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${isActive
-                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                    : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
-                }`}
-        >
-            <span className={`w-1 h-1 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isActive
+            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+            : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+            }`}>
+            <span className={`w-1 h-1 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
             {getStatusLabel(status)}
         </span>
     );

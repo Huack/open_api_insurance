@@ -1,6 +1,6 @@
 export default function LoadingState() {
     return (
-        <div className="lg:col-span-3 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[600px] animate-fade-in">
+        <div className="w-full glass-effect rounded-2xl overflow-hidden flex flex-col animate-fade-in">
             {/* Header skeleton */}
             <div className="p-6 border-b border-[#1e293b] bg-slate-800/20">
                 <div className="flex items-center space-x-4">

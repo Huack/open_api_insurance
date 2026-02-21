@@ -4,40 +4,51 @@ interface ErrorStateProps {
 }
 
 export default function ErrorState({ message, onRetry }: ErrorStateProps) {
+    // Common OAuth error handling for better UX
+    const isAuthError = message?.includes('401') || message?.toLowerCase().includes('unauthorized');
+
+    const displayTitle = isAuthError
+        ? "Falha de Autenticação (OAuth 2.0)"
+        : "Erro de Comunicação com o Tasy";
+
+    const displayMessage = isAuthError
+        ? "O token de acesso expirou ou é inválido. Verifique as credenciais no Vercel."
+        : (message || "Não foi possível carregar os dados. Verifique a conexão com o gateway.");
+
     return (
-        <div className="lg:col-span-3 glass-effect rounded-2xl flex flex-col items-center justify-center min-h-[600px] p-12 animate-fade-in">
-            <div className="p-4 bg-[#ef4444]/10 rounded-2xl mb-6">
-                <span className="material-symbols-rounded text-[#ef4444] text-5xl">cloud_off</span>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Falha na conexão</h3>
-            <p className="text-sm text-slate-400 text-center max-w-md mb-4 leading-relaxed">
-                Não foi possível conectar à API Tasy. Verifique se o token de acesso
-                está configurado corretamente nas variáveis de ambiente.
-            </p>
+        <div className="flex-1 flex items-center justify-center p-8 w-full animate-fade-in">
+            <div className="max-w-xl w-full surface-card border-rose-500/20 p-8 flex flex-col items-center text-center relative overflow-hidden">
 
-            {message && (
-                <div className="mb-6 max-w-lg w-full p-4 bg-[#ef4444]/5 rounded-xl border border-[#ef4444]/10">
-                    <div className="flex items-center space-x-2 mb-2">
-                        <span className="material-symbols-rounded text-[#ef4444] text-sm">error</span>
-                        <span className="text-[10px] font-bold text-[#ef4444]/70 uppercase tracking-widest">
-                            Detalhes do erro
-                        </span>
-                    </div>
-                    <p className="text-xs font-mono text-[#ef4444]/60 break-all leading-relaxed">
-                        {message.substring(0, 300)}
-                    </p>
+                {/* Warning Background Accent */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-rose-500/50" />
+
+                <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6 border border-rose-500/20">
+                    <span className="material-symbols-rounded text-rose-500 text-3xl">
+                        {isAuthError ? 'key_off' : 'cloud_off'}
+                    </span>
                 </div>
-            )}
 
-            {onRetry && (
-                <button
-                    onClick={onRetry}
-                    className="flex items-center space-x-2 bg-[#00d4ff] hover:bg-[#00d4ff]/90 text-slate-900 px-6 py-3 rounded-xl text-sm font-bold transition-all glow-accent active:scale-95"
-                >
-                    <span className="material-symbols-rounded text-lg">refresh</span>
-                    <span>Tentar novamente</span>
-                </button>
-            )}
+                <h3 className="text-xl font-bold text-white mb-3">
+                    {displayTitle}
+                </h3>
+
+                <p className="text-sm text-slate-300 leading-relaxed max-w-md">
+                    {displayMessage}
+                </p>
+
+                <div className="mt-8 flex gap-4 w-full sm:w-auto">
+                    {onRetry && (
+                        <button
+                            onClick={onRetry}
+                            className="flex-1 sm:flex-none px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-rounded text-[20px]">refresh</span>
+                            Tentar Novamente
+                        </button>
+                    )}
+                </div>
+
+            </div>
         </div>
     );
 }
