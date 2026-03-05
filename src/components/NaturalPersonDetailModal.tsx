@@ -102,15 +102,36 @@ export default function NaturalPersonDetailModal({ person, onClose }: NaturalPer
         deleteMutation.mutate({ contactType });
     };
 
-    // Separar contatos de endereços
-    const contacts = (additionalInfo || []).filter(
+    // Extrair contatos nativos (já vindos no objeto principal)
+    const nativeContacts: (AdditionalInformation & { isNative?: boolean })[] = [];
+    if (person.mobilePhone) {
+        nativeContacts.push({
+            contactType: 'MOBILE_PHONE',
+            contactTypeDescription: 'Celular (Principal)',
+            value: person.mobilePhone,
+            isNative: true,
+        });
+    }
+
+    // Separar contatos de endereços da API list
+    const apiContacts = (additionalInfo || []).filter(
         (ai) => ai.contactType.includes('PHONE') || ai.contactType.includes('EMAIL') || ai.contactType.includes('FAX') || ai.contactType === 'MOBILE_PHONE'
     );
+
+    // Mesclar, evitando duplicar o celular principal caso a API também o retorne
+    const contacts = [...nativeContacts];
+    apiContacts.forEach(apiC => {
+        const cleanVal = (val: string) => (val || '').replace(/\D/g, '');
+        if (!contacts.some(c => cleanVal(c.value as string) === cleanVal(apiC.value as string))) {
+            contacts.push(apiC);
+        }
+    });
+
     const addresses = (additionalInfo || []).filter(
         (ai) => ai.contactType.includes('ADDRESS')
     );
     const others = (additionalInfo || []).filter(
-        (ai) => !contacts.includes(ai) && !addresses.includes(ai)
+        (ai) => !apiContacts.includes(ai) && !addresses.includes(ai)
     );
 
     return (
@@ -285,8 +306,14 @@ export default function NaturalPersonDetailModal({ person, onClose }: NaturalPer
                         {/* Contacts List */}
                         {contacts.length > 0 && (
                             <div className="space-y-2">
-                                {contacts.map((c, idx) => (
-                                    <ContactCard key={`${c.contactType}-${idx}`} info={c} onDelete={() => handleDelete(c.contactType)} isDeleting={deleteMutation.isPending} />
+                                {contacts.map((c: any, idx) => (
+                                    <ContactCard
+                                        key={`${c.contactType}-${idx}`}
+                                        info={c}
+                                        onDelete={() => handleDelete(c.contactType)}
+                                        isDeleting={deleteMutation.isPending}
+                                        hideDelete={c.isNative}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -356,7 +383,7 @@ function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string
     );
 }
 
-function ContactCard({ info, onDelete, isDeleting }: { info: AdditionalInformation; onDelete: () => void; isDeleting: boolean }) {
+function ContactCard({ info, onDelete, isDeleting, hideDelete }: { info: AdditionalInformation; onDelete: () => void; isDeleting: boolean; hideDelete?: boolean }) {
     return (
         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/30 border border-[#1e293b] hover:border-[#00d4ff]/10 transition-all group">
             <div className="flex items-center space-x-4">
@@ -369,14 +396,16 @@ function ContactCard({ info, onDelete, isDeleting }: { info: AdditionalInformati
                     {info.complement && <p className="text-[10px] text-slate-500 mt-0.5">{info.complement}</p>}
                 </div>
             </div>
-            <button
-                onClick={onDelete}
-                disabled={isDeleting}
-                className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                aria-label="Excluir contato"
-            >
-                <Trash2 className="h-4 w-4" />
-            </button>
+            {!hideDelete && (
+                <button
+                    onClick={onDelete}
+                    disabled={isDeleting}
+                    className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                    aria-label="Excluir contato"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </button>
+            )}
         </div>
     );
 }
