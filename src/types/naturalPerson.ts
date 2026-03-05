@@ -44,6 +44,8 @@ export interface NaturalPerson {
     birthDate?: string; // YYYY-MM-DD
     gender?: Gender;
     blood?: BloodType;
+    bloodRhFactor?: string;
+    bloodWeakRh?: string;
     maritalStatus?: MaritalStatus;
     susCard?: string; // Cartão SUS
     mobilePhone?: string;
