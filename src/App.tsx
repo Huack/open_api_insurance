@@ -8,7 +8,7 @@ import LoadingState from './components/LoadingState';
 import EmptyState from './components/EmptyState';
 import ErrorState from './components/ErrorState';
 import { useInsurances } from './hooks/useInsurances';
-import type { Insurance, InsuranceFilters } from './types/insurance';
+import { InsuranceStatus, InsuranceType, type Insurance, type InsuranceFilters } from './types/insurance';
 
 const queryClient = new QueryClient();
 
@@ -54,7 +54,7 @@ function Dashboard() {
                 </section>
 
                 {/* Middle Metrics Row */}
-                <MiddleMetrics />
+                <MiddleMetrics data={results} total={total} />
 
                 {/* Core Layout Grid: Sidebar + Data Area */}
                 <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-start">
@@ -131,7 +131,19 @@ function KpiCard({ title, value, subtitle, icon, accent, iconIcon }: { title: st
     );
 }
 
-function MiddleMetrics() {
+function MiddleMetrics({ data, total }: { data: Insurance[]; total: number }) {
+    // Calculate metrics based on current page data as a sample, or use actual data if available
+    const empCount = data.filter(i => i.insuranceType === InsuranceType.TRADE_INSURANCE).length;
+    const indCount = data.filter(i => i.insuranceType === InsuranceType.PRIVATE).length;
+    const colCount = data.filter(i => i.insuranceType === InsuranceType.HEALTH_INSURANCE).length;
+
+    // Simulate pending vs active based on status field
+    const pendingCount = data.filter(i => i.status === InsuranceStatus.INACTIVE).length;
+    const activeCount = data.filter(i => i.status === InsuranceStatus.ACTIVE).length;
+
+    const pendingPercentage = data.length > 0 ? ((pendingCount / data.length) * 100).toFixed(1) : '0.0';
+    const activePercentage = data.length > 0 ? ((activeCount / data.length) * 100).toFixed(1) : '0.0';
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="glass-effect p-4 rounded-xl flex items-center space-x-4 border-l-4 border-l-[#00d4ff]">
@@ -139,11 +151,11 @@ function MiddleMetrics() {
                     <span className="material-symbols-rounded text-[#00d4ff] text-xl">pie_chart</span>
                 </div>
                 <div className="flex-grow">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Convênios por Tipo</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Convênios por Tipo (Pág. Atual)</p>
                     <div className="flex items-center space-x-3 mt-1">
-                        <span className="text-xs font-semibold"><span className="text-[#00d4ff]">642</span> Emp.</span>
-                        <span className="text-xs font-semibold"><span className="text-[#14b8a6]">412</span> Ind.</span>
-                        <span className="text-xs font-semibold"><span className="text-[#a855f7]">194</span> Col.</span>
+                        <span className="text-xs font-semibold"><span className="text-[#00d4ff]">{empCount}</span> Emp.</span>
+                        <span className="text-xs font-semibold"><span className="text-[#14b8a6]">{indCount}</span> Ind.</span>
+                        <span className="text-xs font-semibold"><span className="text-[#a855f7]">{colCount}</span> Col.</span>
                     </div>
                 </div>
             </div>
@@ -154,11 +166,11 @@ function MiddleMetrics() {
                 <div className="flex-grow">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Convênios Pendentes</p>
                     <div className="flex items-center justify-between mt-1">
-                        <span className="text-lg font-bold">34</span>
+                        <span className="text-lg font-bold">{pendingCount}</span>
                         <div className="flex space-x-1 h-1 w-24 bg-slate-800 rounded-full overflow-hidden">
-                            <div className="bg-[#a855f7] w-1/3"></div>
+                            <div className="bg-[#a855f7]" style={{ width: `${Math.min(100, Number(pendingPercentage))}%` }}></div>
                         </div>
-                        <span className="text-[10px] text-slate-500">2.7% do total</span>
+                        <span className="text-[10px] text-slate-500">{pendingPercentage}% da pág.</span>
                     </div>
                 </div>
             </div>
@@ -169,8 +181,8 @@ function MiddleMetrics() {
                 <div className="flex-grow">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Contratos Ativos</p>
                     <div className="flex items-center justify-between mt-1">
-                        <span className="text-lg font-bold">1,189</span>
-                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">95.2%</span>
+                        <span className="text-lg font-bold">{activeCount}</span>
+                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">{activePercentage}%</span>
                     </div>
                 </div>
             </div>
