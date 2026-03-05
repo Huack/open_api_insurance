@@ -50,6 +50,11 @@ export interface NaturalPerson {
     susCard?: string; // Cartão SUS
     mobilePhone?: string;
     dateOfDeath?: string;
+    height?: number;
+    weight?: number;
+    weightBirth?: number;
+    personType?: string;
+    medicalRecord?: number;
     personNameInfo?: PersonNameEntity;
     lastUpdate?: number;
     lastUpdatedBy?: string;

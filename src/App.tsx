@@ -5,6 +5,7 @@ import FilterSidebar from './components/FilterSidebar';
 import InsuranceTable from './components/InsuranceTable';
 import NaturalPersonTable from './components/NaturalPersonTable';
 import DetailModal from './components/DetailModal';
+import NaturalPersonDetailModal from './components/NaturalPersonDetailModal';
 import LoadingState from './components/LoadingState';
 import EmptyState from './components/EmptyState';
 import ErrorState from './components/ErrorState';
@@ -210,20 +211,7 @@ function Dashboard() {
             </footer>
 
             {selected && <DetailModal insurance={selected} onClose={() => setSelected(null)} />}
-            {selectedNp && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-[#0f172a] p-8 rounded-2xl max-w-lg w-full shadow-2xl relative">
-                        <button onClick={() => setSelectedNp(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
-                            <span className="material-symbols-rounded">close</span>
-                        </button>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{selectedNp.personName}</h3>
-                        <p className="text-sm text-slate-500 mb-6">Visualização detalhada da pessoa física e endereços será implementada na Fase 3.</p>
-                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs overflow-auto max-h-64">
-                            <pre>{JSON.stringify(selectedNp, null, 2)}</pre>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {selectedNp && <NaturalPersonDetailModal person={selectedNp} onClose={() => setSelectedNp(null)} />}
         </div>
     );
 }
