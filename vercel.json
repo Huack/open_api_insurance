@@ -6,6 +6,10 @@
         {
             "source": "/api/insurances",
             "destination": "/api/insurances"
+        },
+        {
+            "source": "/api/natural-person(.*)",
+            "destination": "/api/natural-person"
         }
     ]
 }

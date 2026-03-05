@@ -3,12 +3,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/Header';
 import FilterSidebar from './components/FilterSidebar';
 import InsuranceTable from './components/InsuranceTable';
+import NaturalPersonTable from './components/NaturalPersonTable';
 import DetailModal from './components/DetailModal';
 import LoadingState from './components/LoadingState';
 import EmptyState from './components/EmptyState';
 import ErrorState from './components/ErrorState';
 import { useInsurances } from './hooks/useInsurances';
+import { useNaturalPersons } from './hooks/useNaturalPersons';
 import { InsuranceStatus, InsuranceType, type Insurance, type InsuranceFilters } from './types/insurance';
+import type { NaturalPersonFilters, NaturalPerson } from './types/naturalPerson';
 
 const queryClient = new QueryClient();
 
@@ -21,23 +24,46 @@ const DEFAULT_FILTERS: InsuranceFilters = {
     ansCode: '',
 };
 
+const DEFAULT_NP_FILTERS: NaturalPersonFilters = {
+    page: 1,
+    size: 50,
+};
+
 function Dashboard() {
+    const [view, setView] = useState<'insurances' | 'patients'>('insurances');
+
     const [filters, setFilters] = useState<InsuranceFilters>(DEFAULT_FILTERS);
     const [selected, setSelected] = useState<Insurance | null>(null);
 
-    const { data, isLoading, isError, error, refetch } = useInsurances(filters);
+    const [npFilters, setNpFilters] = useState<NaturalPersonFilters>(DEFAULT_NP_FILTERS);
+    const [selectedNp, setSelectedNp] = useState<NaturalPerson | null>(null);
+
+    const { data: insData, isLoading: insIsLoading, isError: insIsError, error: insError, refetch: insRefetch } = useInsurances(filters);
+
+    // Always call the hook (React rules of hooks) - it caches anyway
+    const { data: npData, isLoading: npIsLoading, isError: npIsError, error: npError, refetch: npRefetch } = useNaturalPersons(npFilters);
 
     const handleFilterChange = useCallback((partial: Partial<InsuranceFilters>) => {
         setFilters((prev) => ({ ...prev, ...partial }));
     }, []);
 
-    const handleReset = useCallback(() => {
-        setFilters(DEFAULT_FILTERS);
+    const handleNpFilterChange = useCallback((partial: Partial<NaturalPersonFilters>) => {
+        setNpFilters((prev) => ({ ...prev, ...partial }));
     }, []);
 
-    const results = data?.results || [];
-    const total = data?.total || 0;
-    const totalPages = Math.ceil(total / filters.size) || 1;
+    const handleReset = useCallback(() => {
+        setFilters(DEFAULT_FILTERS);
+        setNpFilters(DEFAULT_NP_FILTERS);
+    }, []);
+
+    const insResults = insData?.results || [];
+    const insTotal = insData?.total || 0;
+    const insTotalPages = Math.ceil(insTotal / filters.size) || 1;
+
+    // Tasy APIs could return NaturalPersons as a direct array or wrapped in { results, total }
+    const npResults: NaturalPerson[] = Array.isArray(npData) ? npData : ((npData as any)?.results || []);
+    // If it's an array directly, we don't have total server count, just page size
+    const npTotal = Array.isArray(npData) ? npResults.length : ((npData as any)?.total || 0);
 
     return (
         <div className="bg-[#f8fafc] dark:bg-[#070b14] text-slate-800 dark:text-slate-200 transition-colors duration-300 min-h-screen font-sans">
@@ -45,53 +71,137 @@ function Dashboard() {
 
             <main className="max-w-4k mx-auto p-6 space-y-6">
 
-                {/* Enterprise KPI Dashboard */}
-                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <KpiCard title="Total de Convênios" value={total.toLocaleString()} subtitle="+12.4% ESTE MÊS" icon="database" accent="primary" iconIcon="trending_up" />
-                    <KpiCard title="Página Atual" value={`${filters.page}/${totalPages}`} subtitle={`VISUALIZANDO ${filters.size} POR PÁGINA`} icon="analytics" accent="accent-purple" />
-                    <KpiCard title="Por Página" value={filters.size.toString()} subtitle="LIMITE CONFIGURADO" icon="list" accent="accent-teal" />
-                    <KpiCard title="Exibindo" value={results.length.toString()} subtitle="RESULTADOS FILTRADOS" icon="check_circle" accent="emerald-500" />
-                </section>
-
-                {/* Middle Metrics Row */}
-                <MiddleMetrics data={results} total={total} />
-
-                {/* Core Layout Grid: Sidebar + Data Area */}
-                <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-start">
-
-                    <aside className="xl:col-span-1 glass-effect rounded-2xl p-6 sidebar-gradient space-y-6">
-                        <FilterSidebar
-                            filters={filters}
-                            onFilterChange={handleFilterChange}
-                            onReset={handleReset}
-                        />
-                    </aside>
-
-                    <section className="xl:col-span-5 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[700px] table-container">
-                        {isLoading ? (
-                            <LoadingState />
-                        ) : isError ? (
-                            <ErrorState message={(error as Error)?.message} onRetry={refetch} />
-                        ) : results.length === 0 ? (
-                            <EmptyState />
-                        ) : (
-                            <InsuranceTable
-                                data={results}
-                                onSelect={setSelected}
-                                page={filters.page}
-                                totalItems={total}
-                                pageSize={filters.size}
-                                onPageChange={(p) => handleFilterChange({ page: p })}
-                            />
-                        )}
-                    </section>
-
+                {/* Tabs for Navigation */}
+                <div className="flex space-x-6 mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <button
+                        onClick={() => setView('insurances')}
+                        className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all ${view === 'insurances' ? 'text-[#00d4ff] border-b-2 border-[#00d4ff] scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        Convênios
+                    </button>
+                    <button
+                        onClick={() => setView('patients')}
+                        className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all ${view === 'patients' ? 'text-[#00d4ff] border-b-2 border-[#00d4ff] scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        Pacientes (Master Data)
+                    </button>
                 </div>
+
+                {/* Dynamic Content Based on View */}
+                {view === 'insurances' ? (
+                    <>
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <KpiCard title="Total de Convênios" value={insTotal.toLocaleString()} subtitle="+12.4% ESTE MÊS" icon="database" accent="primary" iconIcon="trending_up" />
+                            <KpiCard title="Página Atual" value={`${filters.page}/${insTotalPages}`} subtitle={`VISUALIZANDO ${filters.size} POR PÁGINA`} icon="analytics" accent="accent-purple" />
+                            <KpiCard title="Por Página" value={filters.size.toString()} subtitle="LIMITE CONFIGURADO" icon="list" accent="accent-teal" />
+                            <KpiCard title="Exibindo" value={insResults.length.toString()} subtitle="RESULTADOS FILTRADOS" icon="check_circle" accent="emerald-500" />
+                        </section>
+
+                        <MiddleMetrics data={insResults} total={insTotal} />
+
+                        <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-start">
+                            <aside className="xl:col-span-1 glass-effect rounded-2xl p-6 sidebar-gradient space-y-6">
+                                <FilterSidebar
+                                    filters={filters}
+                                    onFilterChange={handleFilterChange}
+                                    onReset={handleReset}
+                                />
+                            </aside>
+
+                            <section className="xl:col-span-5 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[700px] table-container">
+                                {insIsLoading ? (
+                                    <LoadingState />
+                                ) : insIsError ? (
+                                    <ErrorState message={(insError as Error)?.message} onRetry={insRefetch} />
+                                ) : insResults.length === 0 ? (
+                                    <EmptyState />
+                                ) : (
+                                    <InsuranceTable
+                                        data={insResults}
+                                        onSelect={setSelected}
+                                        page={filters.page}
+                                        totalItems={insTotal}
+                                        pageSize={filters.size}
+                                        onPageChange={(p) => handleFilterChange({ page: p })}
+                                    />
+                                )}
+                            </section>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* Pacientes View */}
+                        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <KpiCard title="Total Cadastrado na Nuvem" value="1.240.590" subtitle="PACIENTES ATIVOS" icon="group" accent="primary" iconIcon="cloud" />
+                            <KpiCard title="Página Atual" value={npFilters.page?.toString() || '1'} subtitle={`VISUALIZANDO ${npFilters.size} POR PÁGINA`} icon="analytics" accent="accent-purple" />
+                            <KpiCard title="Resultados da API" value={npResults.length.toString()} subtitle="CARREGADOS NESTA TELA" icon="download" accent="accent-teal" />
+                        </section>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-start">
+                            {/* Reusing Filter Sidebar styling for a placeholder for Natural Persons Filters */}
+                            <aside className="xl:col-span-1 glass-effect rounded-2xl p-6 sidebar-gradient space-y-6">
+                                <div>
+                                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Busca Avançada</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">CPF do Paciente</label>
+                                            <input
+                                                type="text"
+                                                placeholder="000.000.000-00"
+                                                className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#00d4ff] outline-none text-slate-900 dark:text-white"
+                                                value={npFilters['taxpayer-id'] || ''}
+                                                onChange={(e) => handleNpFilterChange({ 'taxpayer-id': e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nome Completo</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: João da Silva..."
+                                                className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#00d4ff] outline-none text-slate-900 dark:text-white"
+                                                value={npFilters.name || ''}
+                                                onChange={(e) => handleNpFilterChange({ name: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 mt-4">
+                                        <button
+                                            onClick={() => handleReset()}
+                                            className="w-full flex justify-center items-center space-x-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-bold text-slate-600 dark:text-slate-400"
+                                        >
+                                            <span className="material-symbols-rounded text-sm">restart_alt</span>
+                                            <span>LIMPAR FILTROS</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </aside>
+
+                            <section className="xl:col-span-5 glass-effect rounded-2xl overflow-hidden flex flex-col min-h-[700px] table-container">
+                                {npIsLoading ? (
+                                    <LoadingState />
+                                ) : npIsError ? (
+                                    <ErrorState message={(npError as Error)?.message} onRetry={npRefetch} />
+                                ) : npResults.length === 0 ? (
+                                    <EmptyState />
+                                ) : (
+                                    <NaturalPersonTable
+                                        data={npResults}
+                                        onSelect={setSelectedNp}
+                                        page={npFilters.page || 1}
+                                        totalItems={npTotal}
+                                        pageSize={npFilters.size || 50}
+                                        onPageChange={(p) => handleNpFilterChange({ page: p })}
+                                    />
+                                )}
+                            </section>
+                        </div>
+                    </>
+                )}
             </main>
 
-            {/* Corporate Footer */}
             <footer className="max-w-4k mx-auto p-6 flex items-center justify-between border-t border-slate-200 dark:border-[#1e293b] mt-12 mb-6">
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">© {new Date().getFullYear()} Gestão de Convênios. Optimized for 4K Performance.</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">© {new Date().getFullYear()} Gestão de Saúde Tasy. Optimized for 4K Performance.</p>
                 <div className="flex space-x-6">
                     <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Suporte</a>
                     <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Termos</a>
@@ -100,12 +210,25 @@ function Dashboard() {
             </footer>
 
             {selected && <DetailModal insurance={selected} onClose={() => setSelected(null)} />}
+            {selectedNp && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-[#0f172a] p-8 rounded-2xl max-w-lg w-full shadow-2xl relative">
+                        <button onClick={() => setSelectedNp(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+                            <span className="material-symbols-rounded">close</span>
+                        </button>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{selectedNp.personName}</h3>
+                        <p className="text-sm text-slate-500 mb-6">Visualização detalhada da pessoa física e endereços será implementada na Fase 3.</p>
+                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs overflow-auto max-h-64">
+                            <pre>{JSON.stringify(selectedNp, null, 2)}</pre>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
 function KpiCard({ title, value, subtitle, icon, accent, iconIcon }: { title: string; value: string; subtitle: string; icon: string; accent: string; iconIcon?: string; }) {
-    // Map accents to exact hex/tailwind classes since dynamic template literals can be tricky in Tailwind
     const bgClass = accent === 'primary' ? 'bg-[#00d4ff]/10' : accent === 'accent-purple' ? 'bg-[#a855f7]/10' : accent === 'accent-teal' ? 'bg-[#14b8a6]/10' : 'bg-emerald-500/10';
     const textClass = accent === 'primary' ? 'text-[#00d4ff]' : accent === 'accent-purple' ? 'text-[#a855f7]' : accent === 'accent-teal' ? 'text-[#14b8a6]' : 'text-emerald-500';
     const fromClass = accent === 'primary' ? 'from-[#00d4ff]' : accent === 'accent-purple' ? 'from-[#a855f7]' : accent === 'accent-teal' ? 'from-[#14b8a6]' : 'from-emerald-500';
@@ -132,12 +255,10 @@ function KpiCard({ title, value, subtitle, icon, accent, iconIcon }: { title: st
 }
 
 function MiddleMetrics({ data, total }: { data: Insurance[]; total: number }) {
-    // Calculate metrics based on current page data as a sample, or use actual data if available
     const empCount = data.filter(i => i.insuranceType === InsuranceType.TRADE_INSURANCE).length;
     const indCount = data.filter(i => i.insuranceType === InsuranceType.PRIVATE).length;
     const colCount = data.filter(i => i.insuranceType === InsuranceType.HEALTH_INSURANCE).length;
 
-    // Simulate pending vs active based on status field
     const pendingCount = data.filter(i => i.status === InsuranceStatus.INACTIVE).length;
     const activeCount = data.filter(i => i.status === InsuranceStatus.ACTIVE).length;
 
