@@ -68,3 +68,51 @@ export interface NaturalPersonFilters {
     'page'?: number;
     'size'?: number;
 }
+
+// ─── Additional Information (Contatos e Endereços) ───────
+
+export enum ContactType {
+    EMAIL = 'EMAIL',
+    PHONE = 'PHONE',
+    MOBILE_PHONE = 'MOBILE_PHONE',
+    COMMERCIAL_PHONE = 'COMMERCIAL_PHONE',
+    FAX = 'FAX',
+    RESIDENTIAL_ADDRESS = 'RESIDENTIAL_ADDRESS',
+    COMMERCIAL_ADDRESS = 'COMMERCIAL_ADDRESS',
+    BILLING_ADDRESS = 'BILLING_ADDRESS',
+    OTHER = 'OTHER',
+}
+
+export interface AdditionalInformation {
+    contactType: string;
+    contactTypeDescription?: string;
+    typeAdditionalId?: string;
+    typeAdditionalDescription?: string;
+    value?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    cityId?: number;
+    state?: string;
+    stateId?: number;
+    zipCode?: string;
+    country?: string;
+    countryId?: number;
+    observation?: string;
+    lastUpdate?: number;
+    lastUpdatedBy?: string;
+}
+
+export interface AdditionalInfoRequest {
+    value: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    cityId?: number;
+    state?: string;
+    stateId?: number;
+    zipCode?: string;
+    country?: string;
+    countryId?: number;
+    observation?: string;
+}
