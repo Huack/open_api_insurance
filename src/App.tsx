@@ -67,10 +67,10 @@ function Dashboard() {
     const npTotal = Array.isArray(npData) ? npResults.length : ((npData as any)?.total || 0);
 
     return (
-        <div className="bg-[#f8fafc] dark:bg-[#070b14] text-slate-800 dark:text-slate-200 transition-colors duration-300 min-h-screen font-sans">
+        <div className="bg-[#f8fafc] dark:bg-[#070b14] text-slate-800 dark:text-slate-200 transition-colors duration-300 min-h-screen font-sans flex flex-col">
             <Header />
 
-            <main className="max-w-4k mx-auto p-6 space-y-6">
+            <main className="max-w-4k mx-auto p-6 space-y-6 flex-grow">
 
                 {/* Tabs for Navigation */}
                 <div className="flex space-x-6 mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">
@@ -201,12 +201,14 @@ function Dashboard() {
                 )}
             </main>
 
-            <footer className="max-w-4k mx-auto p-6 flex items-center justify-between border-t border-slate-200 dark:border-[#1e293b] mt-12 mb-6">
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">© {new Date().getFullYear()} Gestão de Saúde Tasy. Optimized for 4K Performance.</p>
-                <div className="flex space-x-6">
-                    <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Suporte</a>
-                    <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Termos</a>
-                    <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Privacidade</a>
+            <footer className="w-full border-t border-slate-200 dark:border-[#1e293b] mt-auto">
+                <div className="max-w-4k mx-auto px-6 py-4 flex items-center justify-between">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">© {new Date().getFullYear()} Gestão de Saúde Tasy — Feito por <span className="text-[#00d4ff] font-bold">Sandro Hayashiguti</span></p>
+                    <div className="flex space-x-6">
+                        <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Suporte</a>
+                        <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Termos</a>
+                        <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#00d4ff] uppercase tracking-widest font-bold transition-colors">Privacidade</a>
+                    </div>
                 </div>
             </footer>
 

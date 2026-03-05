@@ -41,7 +41,7 @@ export default function Header() {
                         </button>
                         <div className="flex items-center space-x-3 pl-2">
                             <div className="text-right">
-                                <p className="text-xs font-semibold text-white">Administrador Tasy</p>
+                                <p className="text-xs font-semibold text-white">Sandro Hayashiguti</p>
                                 <p className="text-[10px] text-slate-500">Acesso Total</p>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-[#00d4ff]/20 flex items-center justify-center">
