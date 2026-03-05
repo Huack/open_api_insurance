@@ -4,10 +4,16 @@ import type { AdditionalInformation, AdditionalInfoRequest } from '../types/natu
 
 // GET /api/natural-person/{code}/additional-information
 async function fetchAdditionalInfo(personCode: string): Promise<AdditionalInformation[]> {
-    const { data } = await apiClient.get<AdditionalInformation[]>(
-        `/natural-person/${personCode}/additional-information`
-    );
-    return Array.isArray(data) ? data : [];
+    try {
+        const { data } = await apiClient.get<AdditionalInformation[]>(
+            `/natural-person/${personCode}/additional-information`
+        );
+        return Array.isArray(data) ? data : [];
+    } catch {
+        // Se a API retornar 404/400/500 (paciente sem contatos), retorna array vazio
+        // ao invés de propagar o erro para a UI
+        return [];
+    }
 }
 
 export function useAdditionalInfo(personCode: string | undefined) {

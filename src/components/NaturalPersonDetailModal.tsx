@@ -276,8 +276,9 @@ export default function NaturalPersonDetailModal({ person, onClose }: NaturalPer
                             </div>
                         )}
                         {aiError && (
-                            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-                                Não foi possível carregar os contatos. A API pode não suportar este endpoint para este paciente.
+                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center space-x-2">
+                                <span className="material-symbols-rounded text-sm">info</span>
+                                <span>Informações adicionais indisponíveis no momento. O paciente pode não possuir contatos cadastrados.</span>
                             </div>
                         )}
 
