@@ -17,6 +17,14 @@ function formatDate(dateString?: string) {
     }
 }
 
+function formatPhone(phone?: string) {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11) return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    if (cleaned.length === 10) return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    return phone;
+}
+
 interface NaturalPersonTableProps {
     data: NaturalPerson[];
     onSelect: (person: NaturalPerson) => void;
@@ -58,7 +66,7 @@ export default function NaturalPersonTable({ data, onSelect, page, totalItems, p
                             <th className="px-6 py-4 w-36 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">CPF</th>
                             <th className="px-6 py-4 w-36 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Cartão SUS</th>
                             <th className="px-6 py-4 w-32 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Nascimento</th>
-                            <th className="px-6 py-4 w-32 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Tipo Sanguíneo</th>
+                            <th className="px-6 py-4 w-36 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">Celular</th>
                             <th className="px-6 py-4 w-24 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">Ações</th>
                         </tr>
                     </thead>
@@ -98,7 +106,9 @@ export default function NaturalPersonTable({ data, onSelect, page, totalItems, p
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <BloodTypeBadge blood={person.blood} rh={person.bloodRhFactor} />
+                                    <span className="text-xs font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                        {formatPhone(person.mobilePhone) || '---'}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end space-x-1">
